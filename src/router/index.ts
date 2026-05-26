@@ -14,6 +14,10 @@ const router = createRouter({
             component: () => import('@/pages/home/index.vue'),
             meta: { requiresAuth: true }
         },
+        {
+            path: '/:pathMatch(.*)*',
+            redirect: '/login',
+        },
     ],
 })
 

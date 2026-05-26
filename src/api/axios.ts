@@ -2,10 +2,9 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 import { useUserStore } from "@/store/user";
 
 
-const api = axios.create({
-
-});
-
+const api = axios.create({});
+const apiNeedSign = ["/v2/user/login", "/get-region"];
+const apiNoDoubleData = ["/dispatch/app"]
 const loginSign = async (config: InternalAxiosRequestConfig) => {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -28,7 +27,8 @@ const normalSign = (config: InternalAxiosRequestConfig) => {
 }
 
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-    if (config.url === "/v2/user/login") {
+    const urlWithoutQuery = (config.url as string).split("?")[0];
+    if (apiNeedSign.includes(urlWithoutQuery)) {
         await loginSign(config);
     } else {
         normalSign(config);
@@ -38,6 +38,9 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 });
 
 api.interceptors.response.use(response => {
+    if (response.config.url && apiNoDoubleData.includes(response.config.url.split("?")[0])) {
+        return response.data;
+    }
     return response.data.data;
 }, error => {
     if (error.response?.status === 401) {

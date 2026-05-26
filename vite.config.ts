@@ -19,6 +19,20 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_DOMAIN,
           changeOrigin: true,
         },
+        "/get-region": {
+          target: "https://apia.coolkit.cn/v2/utils/",
+          changeOrigin: true,
+        },
+        "/dispatch/app": {
+          target: "https://cn-dispa.coolkit.cn/",
+          changeOrigin: true,
+        },
+        "/ws": {
+          target: "wss://cn-pconnect4.coolkit.cc",
+          changeOrigin: true,
+          ws: true,
+          rewrite: () => "/",
+        }
       },
     },
   }
