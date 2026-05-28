@@ -20,6 +20,13 @@ interface WsConfig {
     hbInterval: number
 }
 
+export interface WebSocketMessage {
+    action?: string,
+    deviceid?: string,
+    params: { switches: Array<{ outlet: number, switch: 'off' | 'on' }> }
+}
+
+
 export function useWebSocket(domain: string, port: number, handshake: HandshakeParams) {
     const connected = ref(false)
     const config = ref<WsConfig | null>(null)
@@ -28,9 +35,7 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     const listeners: Array<(data: any) => void> = []
 
     const connect = () => {
-        const url = import.meta.env.DEV
-            ? `ws://${window.location.host}/ws`
-            : `wss://${domain}:${port}`
+        const url = `wss://${domain}:${port}/api/ws`
         ws = new WebSocket(url)
 
         ws.onopen = () => {
@@ -48,10 +53,12 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         }
 
         ws.onmessage = (event) => {
+            console.log("WebSocket message received:", event)
             const msg = JSON.parse(event.data)
+            console.log("WebSocket message parsed:", msg)
             if (msg.error === 0 && msg.config) {
                 connected.value = true
-                config.value = JSON.parse(msg.config)
+                config.value = msg.config
                 startHeartbeat()
             }
             listeners.forEach(fn => fn(msg))
@@ -59,10 +66,12 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
 
         ws.onclose = () => {
             connected.value = false
+            console.log("WebSocket connection closed")
             stopHeartbeat()
         }
 
         ws.onerror = () => {
+            console.log("WebSocket connection error")
             ws?.close()
         }
     }
@@ -92,9 +101,10 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         ws?.close()
     }
 
-    const onMessage = (handler: (data: any) => void) => {
+
+    const onMessage = (handler: (data: WebSocketMessage) => void) => {
         listeners.push(handler)
     }
 
-    return { connected, config, connect, send, close, onMessage }
+    return { connected, config, connect, send, close, onMessage, listeners }
 }

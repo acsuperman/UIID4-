@@ -27,12 +27,6 @@ export default defineConfig(({ mode }) => {
           target: "https://cn-dispa.coolkit.cn/",
           changeOrigin: true,
         },
-        "/ws": {
-          target: "wss://cn-pconnect4.coolkit.cc",
-          changeOrigin: true,
-          ws: true,
-          rewrite: () => "/",
-        }
       },
     },
   }

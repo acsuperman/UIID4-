@@ -9,9 +9,9 @@ import { countries } from "@/common"
 const userStore = useUserStore()
 
 const form = reactive({
-  account: '',
-  country: '',
-  password: ''
+  account: '19106824372',
+  country: '+86',
+  password: 'acsuperman@peng'
 })
 
 const labelPosition = ref<FormProps['labelPosition']>('top')

@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { userLogin, getRegionInfo, getLongLinkInfo } from "@/api";
 import router from "@/router";
 import api from "@/api/axios";
-import { plainApiRegionDomainMap } from "@/common";
+import { plainApiRegionDomainMap, regionMap } from "@/common";
 import { useWebSocket } from "@/common/websocket";
 import type { loginResponse, regionResponse, familyResponse, longLinkInfo } from "@/api";
 
@@ -48,22 +48,19 @@ export const useUserStore = defineStore("user", () => {
 
     const getLongLink = async () => {
         const data = await getLongLinkInfo();
-        console.log("Long link info:", data);
         longLinkInfo.value = data;
     };
 
     const login = async (phoneNumber: string, password: string, countryCode: string) => {
-        const regionData: regionResponse = await getRegionInfo(countryCode.slice(1)).catch(() => {
-            throw new Error("Failed to get region info");
-        });
+        let temRegion = regionMap.find((r) => r.countryCode === countryCode)?.region || "cn"
         if (import.meta.env.PROD) {
-            api.defaults.baseURL = plainApiRegionDomainMap[regionData.region];
+            api.defaults.baseURL = plainApiRegionDomainMap[temRegion];
         }
         const data: loginResponse = await userLogin(phoneNumber, password, countryCode);
         accessToken.value = data.at;
         refreshToken.value = data.rt;
         userInfo.value = data.user;
-        region.value = regionData.region || data.region || "cn";
+        region.value = temRegion;
         getLongLink().then(() => {
             connectWebSocket()
         })

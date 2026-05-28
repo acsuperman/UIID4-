@@ -55,8 +55,13 @@ export const getFamilyAndRoomInfo = () => {
 export interface itemData {
     name: string,
     family: { roomid: string },
-    extra: { uiid: number },
-    deviceid: string
+    extra: { uiid: number, ui: string }, //ui--- UI 的名称，uiid---UI 的 ID
+    deviceid: string,
+    brandLogo: string,
+    brandName: string,
+    params: {
+        switches: Array<{ outlet: number, switch: "on" | "off" }>
+    }
     // name	String	N	设备名称
     // deviceid	String	N	设备 ID
     // apikey	String	N	设备所属用户的 apikey
