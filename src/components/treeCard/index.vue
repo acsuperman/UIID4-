@@ -16,6 +16,7 @@ const treeProps = {
     children: 'children',
 }
 
+
 const nodeClick = (data: TreeNodeData) => {
     let info = {
         familyId: "",

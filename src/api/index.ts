@@ -57,10 +57,13 @@ export interface itemData {
     family: { roomid: string },
     extra: { uiid: number, ui: string }, //ui--- UI 的名称，uiid---UI 的 ID
     deviceid: string,
+    showBrand: boolean,
+    online: boolean,
     brandLogo: string,
     brandName: string,
     params: {
-        switches: Array<{ outlet: number, switch: "on" | "off" }>
+        switches: Array<{ outlet: number, switch: "on" | "off" }>,
+        online: boolean
     }
     // name	String	N	设备名称
     // deviceid	String	N	设备 ID
@@ -114,8 +117,3 @@ export interface longLinkInfo {
 export const getLongLinkInfo = () => {
     return axios.get<any, longLinkInfo>(`/dispatch/app`);
 }
-
-
-
-
-// export const getLongLink

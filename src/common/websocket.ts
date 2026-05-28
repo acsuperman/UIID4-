@@ -23,7 +23,7 @@ interface WsConfig {
 export interface WebSocketMessage {
     action?: string,
     deviceid?: string,
-    params: { switches: Array<{ outlet: number, switch: 'off' | 'on' }> }
+    params: { switches?: Array<{ outlet: number, switch: 'off' | 'on' }>, online?: boolean }
 }
 
 
@@ -61,7 +61,6 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
                 return
             }
             let msg = JSON.parse(event.data)
-            console.log("WebSocket message parsed:", msg)
             if (msg.error === 0 && msg.config) {
                 config.value = msg.config
                 startHeartbeat()
@@ -113,5 +112,5 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         listeners.push(handler)
     }
 
-    return { config, connect, send, close, onMessage, listeners }
+    return { ws, config, connect, send, close, onMessage, listeners }
 }

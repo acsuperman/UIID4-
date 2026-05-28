@@ -2,11 +2,13 @@
 import { useUserStore } from "@/store/user";
 import { storeToRefs } from 'pinia'
 import { getFamilyDeviceList } from "@/api";
-import { watch, ref, nextTick } from "vue";
+import { watch, ref, nextTick, onMounted } from "vue";
 import DeviceCard from "@/components/deviceDashBoard/deviceCard.vue";
 import type { itemData } from "@/api";
 import type { WebSocketMessage } from "@/common/websocket";
 import DeviceControl from "@/components/deviceDashBoard/deviceControl.vue";
+import { useStops } from "element-plus/es/components/slider/src/composables/use-stops.mjs";
+import useStore from "element-plus/es/components/table/src/store/index.mjs";
 
 
 interface roomDeviceList {
@@ -24,12 +26,23 @@ const nowChooseDevice = ref<itemData | null>(null)
 const dialogVisible = ref(false)
 const changeUi = (data: WebSocketMessage) => {
     const { action } = data
+    if (action === "sysmsg") {
+        const { deviceid, params: { online } } = data
+        Object.values(roomDeviceList.value).forEach((deviceArray) => {
+            deviceArray.forEach((device) => {
+                if (device.deviceid === deviceid) {
+                    device.params.online = online!
+                }
+            })
+        })
+        return;
+    }
     if (action !== "update") return
     const { deviceid, params: { switches } } = data
     Object.values(roomDeviceList.value).forEach((deviceArray) => {
         deviceArray.forEach((device) => {
             if (device.deviceid === deviceid) {
-                device.params.switches = switches
+                device.params.switches = switches!
             }
         })
     })
@@ -37,12 +50,18 @@ const changeUi = (data: WebSocketMessage) => {
 }
 
 const onDeviceCardClick = (device: itemData) => {
-    if (device.extra.uiid !== 4)
+    if (device.extra.uiid !== 4 || device.params.online === false)
         return;
     nowChooseDevice.value = device
     dialogVisible.value = true
 }
 
+onMounted(() => {
+    const ws = userStore.wsClient?.ws
+    if (!ws) {
+        userStore.connectWebSocket()
+    }
+})
 
 
 watch(currentChooseInfo, async (newVal, oldVal) => {
@@ -51,13 +70,13 @@ watch(currentChooseInfo, async (newVal, oldVal) => {
         roomDeviceList.value = {}
         res.thingList.forEach((thing) => {
             const itemData = thing.itemData
-            const roomId = itemData.family.roomid
+            const roomId = itemData.family.roomid || "-1"// -1是未分配
             if (!roomDeviceList.value[roomId]) {
                 roomDeviceList.value[roomId] = []
             }
             roomDeviceList.value[roomId].push(itemData)
         })
-        roomList.value = userStore.familyInfo.familyList.find(family => family.id === newVal.familyId)?.roomList || []
+        roomList.value = [{ id: "-1", name: "未分配", index: -1 }, ...(userStore.familyInfo.familyList.find(family => family.id === newVal.familyId)?.roomList || [])]
     }
     await nextTick()
     if (newVal.roomName) {
@@ -76,7 +95,6 @@ watch(currentChooseInfo, async (newVal, oldVal) => {
 watch(wsClient, (newVal) => {
     if (newVal) {
         newVal.onMessage(changeUi)
-        console.log("WebSocket client set up with onMessage handler.", newVal);
     }
 }, { immediate: true })
 

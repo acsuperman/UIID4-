@@ -5,7 +5,6 @@ import logo from "@/assets/logo.png";
 import { useUserStore } from "@/store/user";
 
 const userStore = useUserStore();
-
 </script>
 
 <template>
