@@ -28,10 +28,12 @@ export interface WebSocketMessage {
 
 
 export function useWebSocket(domain: string, port: number, handshake: HandshakeParams) {
-    const connected = ref(false)
+
     const config = ref<WsConfig | null>(null)
     let ws: WebSocket | null = null
     let heartbeatTimer: ReturnType<typeof setTimeout> | null = null
+    let heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null
+    const heartbeatTimeout = 5000
     const listeners: Array<(data: any) => void> = []
 
     const connect = () => {
@@ -54,10 +56,13 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
 
         ws.onmessage = (event) => {
             console.log("WebSocket message received:", event)
-            const msg = JSON.parse(event.data)
+            if (event.data === "pong") {
+                clearTimeout(heartbeatTimeoutTimer ? heartbeatTimeoutTimer : undefined)
+                return
+            }
+            let msg = JSON.parse(event.data)
             console.log("WebSocket message parsed:", msg)
             if (msg.error === 0 && msg.config) {
-                connected.value = true
                 config.value = msg.config
                 startHeartbeat()
             }
@@ -65,13 +70,11 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         }
 
         ws.onclose = () => {
-            connected.value = false
-            console.log("WebSocket connection closed")
             stopHeartbeat()
+            connect()
         }
 
         ws.onerror = () => {
-            console.log("WebSocket connection error")
             ws?.close()
         }
     }
@@ -80,7 +83,11 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         if (!config.value || config.value.hb !== 1) return
         const interval = (config.value.hbInterval || 90) * (0.8 + Math.random() * 0.2)
         heartbeatTimer = setTimeout(() => {
-            ws?.send(JSON.stringify({ action: 'ping', sequence: Date.now().toString() }))
+            ws?.send("ping")
+            heartbeatTimeoutTimer = setTimeout(() => {
+                stopHeartbeat()
+                connect()
+            }, heartbeatTimeout);
             startHeartbeat()
         }, interval * 1000)
     }
@@ -106,5 +113,5 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         listeners.push(handler)
     }
 
-    return { connected, config, connect, send, close, onMessage, listeners }
+    return { config, connect, send, close, onMessage, listeners }
 }

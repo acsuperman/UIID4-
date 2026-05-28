@@ -69,8 +69,7 @@ getFamilyAndRoomInfo().then((res) => {
 
 <template>
     <div id="tree-wrapper">
-        <el-tree-v2 style="max-width: 600px" :data="treeData" :props="treeProps" :height="1000"
-            @nodeClick="nodeClick" />
+        <el-tree-v2 style="max-width: 600px" :data="treeData" :props="treeProps" :height="520" @nodeClick="nodeClick" />
     </div>
 </template>
 

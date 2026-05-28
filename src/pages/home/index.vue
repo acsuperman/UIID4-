@@ -52,7 +52,7 @@ header {
 
 aside {
     width: 20vw;
-    height: 100%;
+    height: 90%;
     border-radius: 30px;
     margin: 16px;
     background-color: rgb(255 255 255);

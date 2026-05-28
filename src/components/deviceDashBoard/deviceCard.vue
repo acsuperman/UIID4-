@@ -37,6 +37,13 @@ const isCanControl = computed(() => device.value.extra.uiid === 4)
 #device-card {
     border-radius: 16px;
     background-color: rgb(255 255 255);
+    box-shadow: 1px 1px 0.4px grey;
+    position: relative;
+    transition: transform 0.3s ease;
 
+}
+
+#device-card:hover {
+    transform: rotate(5deg);
 }
 </style>

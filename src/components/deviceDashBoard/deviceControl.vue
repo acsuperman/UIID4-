@@ -65,6 +65,7 @@ const changeChannelStatus = (device: itemData, outlet: number) => {
 }
 
 .slider {
+    position: absolute;
     width: 80%;
     height: 45%;
     border-radius: 15px;
@@ -72,19 +73,16 @@ const changeChannelStatus = (device: itemData, outlet: number) => {
     justify-content: center;
     align-items: center;
     color: white;
-
-
+    transition: top 0.3s ease, background-color 0.3s ease;
 }
 
 .on-status {
-    margin-top: 6px;
+    top: 6px;
     background-color: rgb(24 144 255);
 }
 
 .off-status {
-    margin-top: calc(100%-6px);
+    top: calc(55% - 6px);
     background-color: rgb(197 198 200);
-    position: absolute;
-    bottom: 6px;
 }
 </style>

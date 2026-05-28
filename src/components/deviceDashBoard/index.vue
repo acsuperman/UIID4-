@@ -2,7 +2,7 @@
 import { useUserStore } from "@/store/user";
 import { storeToRefs } from 'pinia'
 import { getFamilyDeviceList } from "@/api";
-import { watch, ref, onMounted } from "vue";
+import { watch, ref, nextTick } from "vue";
 import DeviceCard from "@/components/deviceDashBoard/deviceCard.vue";
 import type { itemData } from "@/api";
 import type { WebSocketMessage } from "@/common/websocket";
@@ -45,8 +45,8 @@ const onDeviceCardClick = (device: itemData) => {
 
 
 
-watch(currentChooseInfo, async (newVal) => {
-    if (newVal.familyId) {
+watch(currentChooseInfo, async (newVal, oldVal) => {
+    if (newVal.familyId && newVal.familyId !== oldVal.familyId) {
         const res = await getFamilyDeviceList(newVal.familyId)
         roomDeviceList.value = {}
         res.thingList.forEach((thing) => {
@@ -57,9 +57,19 @@ watch(currentChooseInfo, async (newVal) => {
             }
             roomDeviceList.value[roomId].push(itemData)
         })
-
         roomList.value = userStore.familyInfo.familyList.find(family => family.id === newVal.familyId)?.roomList || []
-
+    }
+    await nextTick()
+    if (newVal.roomName) {
+        const elements = document.querySelectorAll('.room-name')
+        for (const el of elements) {
+            if (el.textContent?.trim() === newVal.roomName) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" })
+                break
+            }
+        }
+    } else {
+        document.getElementById('family-name')?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
 }, {})
 
@@ -98,13 +108,12 @@ watch(wsClient, (newVal) => {
 #family-name {
     font-size: 40px;
     font-weight: bold;
-    margin-left: 16px 0px 16px 16px;
+    margin: 16px 0px 16px 16px;
 }
 
 .room-name {
     font-size: 20px;
     font-weight: bold;
     margin: 16px;
-
 }
 </style>

@@ -26,6 +26,9 @@ router.beforeEach((to) => {
     if (to.meta.requiresAuth && !userStore.accessToken) {
         return '/login'
     }
+    if (to.path === "/login" && userStore.accessToken) {
+        return "/home"
+    }
 })
 
 export default router

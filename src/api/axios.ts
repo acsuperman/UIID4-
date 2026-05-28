@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { useUserStore } from "@/store/user";
+import { ElMessage } from "element-plus";
 
 
 const api = axios.create({});
@@ -26,6 +27,7 @@ const normalSign = (config: InternalAxiosRequestConfig) => {
     config.headers["Authorization"] = `Bearer ${userStore.accessToken}`;
 }
 
+
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     const urlWithoutQuery = (config.url as string).split("?")[0];
     if (apiNeedSign.includes(urlWithoutQuery)) {
@@ -38,15 +40,19 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 });
 
 api.interceptors.response.use(response => {
+    if (response.data.error !== 0) {
+        ElMessage.error(response.data.msg)
+        throw new Error(response.data.msg)
+    }
     if (response.config.url && apiNoDoubleData.includes(response.config.url.split("?")[0])) {
         return response.data;
     }
     return response.data.data;
 }, error => {
-    if (error.response?.status === 401) {
-        useUserStore().logout();
-    }
-    console.error("API Error:", error);
+    // if (error.response?.status === 401) {
+    //     useUserStore().logout();
+    // }
+    // console.error("API Error:", error);
     throw error;
 });
 

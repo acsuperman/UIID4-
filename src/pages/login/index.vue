@@ -6,12 +6,13 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from "@/store/user";
 import router from '@/router';
 import { countries } from "@/common"
+import logo from "@/assets/logo.png"
 const userStore = useUserStore()
 
 const form = reactive({
-  account: '19106824372',
-  country: '+86',
-  password: 'acsuperman@peng'
+  account: '',
+  country: '',
+  password: ''
 })
 
 const labelPosition = ref<FormProps['labelPosition']>('top')
@@ -24,15 +25,25 @@ const onSubmit = () => {
   }
   userStore.login(form.country + form.account, form.password, form.country).then(() => {
     router.push("/home")
-  }).catch(() => {
-    ElMessage.error("登录失败，请检查账号、密码和国家是否正确")
   })
 }
+
+
 </script>
 
 <template>
   <div id="wraper">
     <div id="login-card">
+      <div style="display: flex;margin: 20px 0px 0px 30px;">
+        <img :src="logo" alt="" height="40px">
+        <div style="height: 40px;display: flex;align-items: center;margin-left: 5px;font-weight: bold;font-size: 30px;">
+          UIID4控制</div>
+        <div
+          style="height: 40px;font-weight: bold;display: flex;align-items: end;margin-left: auto; margin-right: 40px;">
+          账号登录
+        </div>
+      </div>
+
       <div id="login-form">
         <el-form :model="form" label-width="auto" style="max-width: 600px" :label-position="labelPosition">
           <el-form-item label="地区">
@@ -65,7 +76,9 @@ const onSubmit = () => {
           </el-form-item>
           <el-form-item>
             <div style="display: flex; justify-content: center;width: 100%;">
-              <el-button type="primary" @click="onSubmit">登录</el-button>
+              <button @click.prevent="onSubmit">
+                登录
+              </button>
             </div>
           </el-form-item>
         </el-form>
@@ -92,9 +105,25 @@ const onSubmit = () => {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  overflow: hidden;
 }
 
 #login-form {
-  padding: 40px;
+  padding: 30px;
+}
+
+button {
+  width: 50%;
+  background-color: #1677ff;
+  height: 40px;
+  color: white;
+  border-radius: 10px;
+  margin-top: 20px;
+  border: 0px;
+  transition: width 0.3s ease;
+}
+
+button:hover {
+  width: 80%;
 }
 </style>
