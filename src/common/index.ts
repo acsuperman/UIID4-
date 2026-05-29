@@ -5,6 +5,13 @@ export const plainApiRegionDomainMap: Record<string, string> = {
     eu: "https://eu-apia.coolkit.cc"
 }
 
+export const dispatchLongLinkUrlMap: Record<string, string> = {
+    as: "https://as-dispa.coolkit.cc/dispatch/app",
+    cn: "https://cn-dispa.coolkit.cn/dispatch/app",
+    us: "https://us-dispa.coolkit.cc/dispatch/app",
+    eu: "https://eu-dispa.coolkit.cc/dispatch/app"
+}
+
 
 
 export const countries: Array<{ name: string; code: string }> = [

@@ -114,6 +114,6 @@ export interface longLinkInfo {
     reason: string,//N	成功返回 ok
 }
 
-export const getLongLinkInfo = () => {
-    return axios.get<any, longLinkInfo>(`/dispatch/app`);
+export const getLongLinkInfo = (url: string) => {
+    return axios.get<any, longLinkInfo>(url);
 }

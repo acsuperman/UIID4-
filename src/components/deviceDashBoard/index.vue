@@ -25,8 +25,25 @@ const roomDeviceList = ref<roomDeviceList>({})
 const nowChooseDevice = ref<itemData | null>(null)
 const dialogVisible = ref(false)
 const changeUi = (data: WebSocketMessage) => {
+    let hasWsControlRs = -1
+    userStore.wsControlRes.forEach((item, index) => { //在确认此次的控制信息执行成功之后再改ui
+        if (item.deviceid === data.deviceid && item.sequence === data.sequence) {
+            hasWsControlRs = index
+        }
+    })
+    if (hasWsControlRs !== -1) {
+        Object.values(roomDeviceList.value).forEach((deviceArray) => {
+            deviceArray.forEach((device) => {
+                if (device.deviceid === userStore.wsControlRes[hasWsControlRs].deviceid) {
+                    device.params.switches = userStore.wsControlRes[hasWsControlRs].switches!
+                }
+            })
+        })
+        userStore.wsControlRes.splice(hasWsControlRs, 1)
+        return;
+    }
     const { action } = data
-    if (action === "sysmsg") {
+    if (action === "sysmsg") {  //上下线
         const { deviceid, params: { online } } = data
         Object.values(roomDeviceList.value).forEach((deviceArray) => {
             deviceArray.forEach((device) => {
@@ -37,7 +54,7 @@ const changeUi = (data: WebSocketMessage) => {
         })
         return;
     }
-    if (action !== "update") return
+    if (action !== "update") return  //别的客户端更新状态后，本客户端同步
     const { deviceid, params: { switches } } = data
     Object.values(roomDeviceList.value).forEach((deviceArray) => {
         deviceArray.forEach((device) => {

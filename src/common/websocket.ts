@@ -23,6 +23,7 @@ interface WsConfig {
 export interface WebSocketMessage {
     action?: string,
     deviceid?: string,
+    sequence?: string,
     params: { switches?: Array<{ outlet: number, switch: 'off' | 'on' }>, online?: boolean }
 }
 
@@ -58,9 +59,13 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
             console.log("WebSocket message received:", event)
             if (event.data === "pong") {
                 clearTimeout(heartbeatTimeoutTimer ? heartbeatTimeoutTimer : undefined)
-                return
+                return;
             }
             let msg = JSON.parse(event.data)
+            if (msg.error !== 0) {
+                console.log("websocket返回错误,错误码：", msg.error)
+                return;
+            }
             if (msg.error === 0 && msg.config) {
                 config.value = msg.config
                 startHeartbeat()

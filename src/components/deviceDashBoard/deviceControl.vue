@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import type { itemData } from "@/api";
 import { useUserStore } from "@/store/user";
+import { cloneDeep } from "lodash"
 const props = defineProps<{ device: itemData | null }>()
 
 const userStore = useUserStore()
 const changeChannelStatus = (device: itemData, outlet: number) => {
     //roomDeviceList.value[device.family.roomid].find(device => device.deviceid === device.deviceid)?.params.switches.find(item => item.outlet === outlet)?.switch
-    let targetSwitch = device.params.switches.find(item => item.outlet === outlet);
+    const cloneSwitches = cloneDeep(device.params.switches)
+    let targetSwitch = cloneSwitches.find((item: { outlet: number, switch: "on" | "off" }) => item.outlet === outlet);
     targetSwitch!.switch = targetSwitch!.switch === "off" ? "on" : "off"
+    const sequence = Date.now().toString()
     let updateData = {
         action: "update",
         apikey: userStore.userInfo.apikey,
         deviceid: device.deviceid,
-        params: { switches: device.params.switches },
+        params: { switches: cloneSwitches },
         userAgent: "app",
-        sequence: Date.now().toString()
+        sequence
     }
     userStore.wsClient?.send(updateData)
+    userStore.wsControlRes.push({ sequence, deviceid: device.deviceid, switches: cloneSwitches })
 
 }
 </script>

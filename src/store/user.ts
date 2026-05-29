@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { userLogin, getRegionInfo, getLongLinkInfo } from "@/api";
+import { userLogin, getLongLinkInfo } from "@/api";
 import router from "@/router";
 import api from "@/api/axios";
-import { plainApiRegionDomainMap, regionMap } from "@/common";
+import { plainApiRegionDomainMap, regionMap, dispatchLongLinkUrlMap } from "@/common";
 import { useWebSocket } from "@/common/websocket";
 import type { loginResponse, regionResponse, familyResponse, longLinkInfo } from "@/api";
 
@@ -12,6 +12,7 @@ export const useUserStore = defineStore("user", () => {
     const refreshToken = ref<string>("");
     const userInfo = ref<{ apikey: string }>({ apikey: "" });
     const region = ref<string>("");
+    const wsControlRes = ref<Array<{ sequence: string, deviceid: string, switches: Array<{ outlet: number, switch: "on" | "off" }> }>>([])
     const familyInfo = ref<familyResponse>({
         familyList: [],
         currentFamilyId: ""
@@ -47,15 +48,13 @@ export const useUserStore = defineStore("user", () => {
     }
 
     const getLongLink = async () => {
-        const data = await getLongLinkInfo();
+        const data = await getLongLinkInfo(dispatchLongLinkUrlMap[region.value]);
         longLinkInfo.value = data;
     };
 
     const login = async (phoneNumber: string, password: string, countryCode: string) => {
         let temRegion = regionMap.find((r) => r.countryCode === countryCode)?.region || "cn"
-        if (import.meta.env.PROD) {
-            api.defaults.baseURL = plainApiRegionDomainMap[temRegion];
-        }
+        api.defaults.baseURL = plainApiRegionDomainMap[temRegion];
         const data: loginResponse = await userLogin(phoneNumber, password, countryCode);
         accessToken.value = data.at;
         refreshToken.value = data.rt;
@@ -91,7 +90,7 @@ export const useUserStore = defineStore("user", () => {
         router.push("/login");
     };
 
-    return { accessToken, refreshToken, userInfo, region, familyInfo, currentChooseInfo, longLinkInfo, wsClient, login, logout, connectWebSocket };
+    return { accessToken, refreshToken, userInfo, region, familyInfo, currentChooseInfo, longLinkInfo, wsClient, login, logout, connectWebSocket, wsControlRes };
 }, {
     persist: {
         pick: ['accessToken', 'refreshToken', 'userInfo', 'region', 'familyInfo', 'longLinkInfo'],

@@ -1,11 +1,12 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { useUserStore } from "@/store/user";
 import { ElMessage } from "element-plus";
+import { dispatchLongLinkUrlMap } from "@/common"
 
 
 const api = axios.create({});
 const apiNeedSign = ["/v2/user/login", "/get-region"];
-const apiNoDoubleData = ["/dispatch/app"]
+const apiNoDoubleData = ["/dispatch/app", ...Object.values(dispatchLongLinkUrlMap)]
 const loginSign = async (config: InternalAxiosRequestConfig) => {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -54,7 +55,7 @@ api.interceptors.response.use(response => {
         }
         throw new Error(response.data.msg)
     }
-    if (response.config.url && apiNoDoubleData.includes(response.config.url.split("?")[0])) {
+    if (response.config.url && apiNoDoubleData.includes(response.config.url)) {
         return response.data;
     }
     return response.data.data;
