@@ -7,8 +7,6 @@ import DeviceCard from "@/components/deviceDashBoard/deviceCard.vue";
 import type { itemData } from "@/api";
 import type { WebSocketMessage } from "@/common/websocket";
 import DeviceControl from "@/components/deviceDashBoard/deviceControl.vue";
-import { useStops } from "element-plus/es/components/slider/src/composables/use-stops.mjs";
-import useStore from "element-plus/es/components/table/src/store/index.mjs";
 
 
 interface roomDeviceList {
@@ -74,8 +72,8 @@ const onDeviceCardClick = (device: itemData) => {
 }
 
 onMounted(() => {
-    const ws = userStore.wsClient?.ws
-    if (!ws) {
+    const wsC = userStore.wsClient
+    if (!wsC) {
         userStore.connectWebSocket()
     }
 })

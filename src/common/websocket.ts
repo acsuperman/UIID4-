@@ -1,5 +1,8 @@
 import { ref } from 'vue'
 
+let reConnectInterval = 0;
+const reConnectMaxInterval = 60
+let connectingFlag = false
 function randomNonce(length = 8): string {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
     let result = ''
@@ -37,11 +40,20 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     const heartbeatTimeout = 5000
     const listeners: Array<(data: any) => void> = []
 
-    const connect = () => {
+
+    const connect = async () => {
+        if (connectingFlag === true)
+            return;
+        connectingFlag = true;
+        await new Promise((resolve) => setTimeout(() => resolve(""), reConnectInterval * 1000))
+        reConnectInterval += 5;
+        if (reConnectInterval > reConnectMaxInterval)
+            return;
         const url = `wss://${domain}:${port}/api/ws`
         ws = new WebSocket(url)
 
         ws.onopen = () => {
+            reConnectInterval = 0
             const handshakeMsg = {
                 action: 'userOnline',
                 version: 8,
@@ -81,6 +93,7 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         ws.onerror = () => {
             ws?.close()
         }
+        connectingFlag = false;
     }
 
     const startHeartbeat = () => {

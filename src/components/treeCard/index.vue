@@ -47,7 +47,7 @@ const nodeClick = (data: TreeNodeData) => {
 const treeData = ref<Tree[]>([])
 
 getFamilyAndRoomInfo().then((res) => {
-    treeData.value = res.familyList.map(family => ({
+    treeData.value = res.familyList?.map(family => ({
         id: family.id,
         label: family.name,
         children: family.roomList?.map(room => ({

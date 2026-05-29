@@ -35,7 +35,6 @@ export const useUserStore = defineStore("user", () => {
     })
 
     const wsClient = ref<ReturnType<typeof useWebSocket> | null>(null)
-
     const connectWebSocket = () => {
         const { domain, port } = longLinkInfo.value
         if (!domain || port <= 0) return

@@ -1,10 +1,9 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { useUserStore } from "@/store/user";
 import { ElMessage } from "element-plus";
-import { dispatchLongLinkUrlMap } from "@/common"
+import { dispatchLongLinkUrlMap, plainApiRegionDomainMap } from "@/common"
 
-
-const api = axios.create({});
+const api = axios.create({ baseURL: plainApiRegionDomainMap.cn });
 const apiNeedSign = ["/v2/user/login", "/get-region"];
 const apiNoDoubleData = ["/dispatch/app", ...Object.values(dispatchLongLinkUrlMap)]
 const loginSign = async (config: InternalAxiosRequestConfig) => {
@@ -30,6 +29,10 @@ const normalSign = (config: InternalAxiosRequestConfig) => {
 
 
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+    const userStore = useUserStore();
+    if (userStore.region && plainApiRegionDomainMap[userStore.region]) {
+        config.baseURL = plainApiRegionDomainMap[userStore.region];
+    }
     const urlWithoutQuery = (config.url as string).split("?")[0];
     if (apiNeedSign.includes(urlWithoutQuery)) {
         await loginSign(config);
@@ -42,6 +45,7 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
 api.interceptors.response.use(response => {
     const userStore = useUserStore();
+    console.log("response", response)
     if (response.data.error !== 0) {
         ElMessage.error(response.data.msg)
         const error = response.data.error
@@ -53,7 +57,6 @@ api.interceptors.response.use(response => {
             //ac过期，在这里进行无感刷新，由于刷新接口当前appid没权限，所以现在直接执行注销逻辑，直接去重新登录
             userStore.logout()
         }
-        throw new Error(response.data.msg)
     }
     if (response.config.url && apiNoDoubleData.includes(response.config.url)) {
         return response.data;
@@ -64,7 +67,7 @@ api.interceptors.response.use(response => {
     //     useUserStore().logout();
     // }
     // console.error("API Error:", error);
-    throw error;
+    return error;
 });
 
 export default api;
