@@ -1,5 +1,5 @@
+import { useUserStore } from '@/store/user';
 import { ref } from 'vue'
-
 let reConnectInterval = 0;
 const reConnectMaxInterval = 60
 let connectingFlag = false
@@ -26,9 +26,25 @@ interface WsConfig {
 export interface WebSocketMessage {
     action?: string,
     deviceid?: string,
+    error: number,
     sequence?: string,
     params: { switches?: Array<{ outlet: number, switch: 'off' | 'on' }>, online?: boolean }
 }
+
+export interface WsSendData {
+    action: string,
+    apikey: string,
+    deviceid: string,
+    params: {
+        switches: {
+            outlet: number;
+            switch: "off" | "on";
+        }[]
+    },
+    userAgent: string,
+    sequence: string
+}
+
 
 
 export function useWebSocket(domain: string, port: number, handshake: HandshakeParams) {
@@ -38,6 +54,7 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     let heartbeatTimer: ReturnType<typeof setTimeout> | null = null
     let heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null
     const heartbeatTimeout = 5000
+    const wsControlRes: Array<{ reject: (reason?: any) => void, resolve: (value: string) => void, sequence: string, deviceid: string, switches: Array<{ outlet: number, switch: "on" | "off" }> }> = []
     const listeners: Array<(data: any) => void> = []
 
 
@@ -74,10 +91,6 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
                 return;
             }
             let msg = JSON.parse(event.data)
-            if (msg.error !== 0) {
-                console.log("websocket返回错误,错误码：", msg.error)
-                return;
-            }
             if (msg.error === 0 && msg.config) {
                 config.value = msg.config
                 startHeartbeat()
@@ -116,12 +129,13 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         }
     }
 
-    const send = (data: object) => {
+    const send = (data: WsSendData) => {
         ws?.send(JSON.stringify(data))
     }
 
     const close = () => {
         stopHeartbeat()
+        clearTimeout(heartbeatTimeoutTimer as number)
         ws?.close()
     }
 
@@ -130,5 +144,72 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         listeners.push(handler)
     }
 
-    return { ws, config, connect, send, close, onMessage, listeners }
+    const dealWsRes = (data: WebSocketMessage) => {
+        let hasWsControlRs = -1
+        const userStore = useUserStore()
+        wsControlRes.forEach((item, index) => {
+            if (item.sequence === data.sequence) {
+                hasWsControlRs = index
+            }
+        })
+        if (hasWsControlRs !== -1) {
+            const targetRs = wsControlRes[hasWsControlRs]
+            if (data.error === 0) {
+                Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
+                    deviceArray.forEach((device) => {
+                        if (device.deviceid === targetRs.deviceid) {
+                            device.params.switches = targetRs.switches!
+                        }
+                    })
+                })
+                targetRs.resolve("ok")
+            }
+            else
+                targetRs.reject(data.error)
+            wsControlRes.splice(hasWsControlRs, 1)
+            return;
+        }
+        if (data.error !== undefined && data.error !== 0)
+            return;
+        const { action } = data
+        if (action === "sysmsg") {  //上下线
+            const { deviceid, params: { online } } = data
+            Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
+                deviceArray.forEach((device) => {
+                    if (device.deviceid === deviceid) {
+                        device.params.online = online!
+                    }
+                })
+            })
+            return;
+        }
+        if (action !== "update") return  //别的客户端更新状态后，本客户端同步
+        const { deviceid, params: { switches } } = data
+        Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
+            deviceArray.forEach((device) => {
+                if (device.deviceid === deviceid) {
+                    device.params.switches = switches!
+                }
+            })
+        })
+
+    }
+
+    const sendRequest = (data: WsSendData) => {
+        send(data)
+        return new Promise((resolve, reject) => {
+            wsControlRes.push({ reject, resolve, sequence: data.sequence, deviceid: data.deviceid, switches: data.params.switches })
+        })
+
+    }
+
+
+    const init = () => {
+        listeners.push(dealWsRes)
+    }
+    init()
+
+
+
+    return { ws, config, connect, send, close, onMessage, listeners, sendRequest }
 }

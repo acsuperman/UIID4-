@@ -45,7 +45,6 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
 api.interceptors.response.use(response => {
     const userStore = useUserStore();
-    console.log("response", response)
     if (response.data.error !== 0) {
         ElMessage.error(response.data.msg)
         const error = response.data.error

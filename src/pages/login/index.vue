@@ -7,6 +7,7 @@ import { useUserStore } from "@/store/user";
 import router from '@/router';
 import { countries } from "@/common"
 import logo from "@/assets/logo.png"
+import {regionMap} from "@/common"
 const userStore = useUserStore()
 
 const form = reactive({
@@ -28,6 +29,10 @@ const onSubmit = () => {
   })
 }
 
+const onCountryChange=(countryCode:string)=>{
+userStore.region= regionMap.find((r) => r.countryCode === countryCode)?.region || "cn"
+}
+
 
 </script>
 
@@ -47,7 +52,7 @@ const onSubmit = () => {
       <div id="login-form">
         <el-form :model="form" label-width="auto" style="max-width: 600px" :label-position="labelPosition">
           <el-form-item label="地区">
-            <el-select v-model="form.country" placeholder="请选择地区">
+            <el-select v-model="form.country" placeholder="请选择地区" @change="onCountryChange">
               <template #prefix>
                 <el-icon>
                   <Location />

@@ -5,14 +5,17 @@ import router from "@/router";
 import api from "@/api/axios";
 import { plainApiRegionDomainMap, regionMap, dispatchLongLinkUrlMap } from "@/common";
 import { useWebSocket } from "@/common/websocket";
-import type { loginResponse, regionResponse, familyResponse, longLinkInfo } from "@/api";
+import type { loginResponse, regionResponse, familyResponse, longLinkInfo, itemData } from "@/api";
+
+interface roomDeviceList {
+    [roomId: string]: itemData[]
+}
 
 export const useUserStore = defineStore("user", () => {
     const accessToken = ref<string>("");
     const refreshToken = ref<string>("");
     const userInfo = ref<{ apikey: string }>({ apikey: "" });
     const region = ref<string>("");
-    const wsControlRes = ref<Array<{ sequence: string, deviceid: string, switches: Array<{ outlet: number, switch: "on" | "off" }> }>>([])
     const familyInfo = ref<familyResponse>({
         familyList: [],
         currentFamilyId: ""
@@ -34,6 +37,10 @@ export const useUserStore = defineStore("user", () => {
         reason: ""
     })
 
+    const roomDeviceList = ref<roomDeviceList>({})
+
+
+
     const wsClient = ref<ReturnType<typeof useWebSocket> | null>(null)
     const connectWebSocket = () => {
         const { domain, port } = longLinkInfo.value
@@ -52,13 +59,11 @@ export const useUserStore = defineStore("user", () => {
     };
 
     const login = async (phoneNumber: string, password: string, countryCode: string) => {
-        let temRegion = regionMap.find((r) => r.countryCode === countryCode)?.region || "cn"
-        api.defaults.baseURL = plainApiRegionDomainMap[temRegion];
+        api.defaults.baseURL = plainApiRegionDomainMap[region.value];
         const data: loginResponse = await userLogin(phoneNumber, password, countryCode);
         accessToken.value = data.at;
         refreshToken.value = data.rt;
         userInfo.value = data.user;
-        region.value = temRegion;
         getLongLink().then(() => {
             connectWebSocket()
         })
@@ -89,7 +94,7 @@ export const useUserStore = defineStore("user", () => {
         router.push("/login");
     };
 
-    return { accessToken, refreshToken, userInfo, region, familyInfo, currentChooseInfo, longLinkInfo, wsClient, login, logout, connectWebSocket, wsControlRes };
+    return { accessToken, refreshToken, userInfo, region, familyInfo, currentChooseInfo, longLinkInfo, wsClient, login, logout, connectWebSocket, roomDeviceList };
 }, {
     persist: {
         pick: ['accessToken', 'refreshToken', 'userInfo', 'region', 'familyInfo', 'longLinkInfo'],

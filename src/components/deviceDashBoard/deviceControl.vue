@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { itemData } from "@/api";
 import { useUserStore } from "@/store/user";
+import { ElMention, ElMessage } from "element-plus";
 import { cloneDeep } from "lodash"
 const props = defineProps<{ device: itemData | null }>()
 
@@ -19,8 +20,12 @@ const changeChannelStatus = (device: itemData, outlet: number) => {
         userAgent: "app",
         sequence
     }
-    userStore.wsClient?.send(updateData)
-    userStore.wsControlRes.push({ sequence, deviceid: device.deviceid, switches: cloneSwitches })
+    userStore.wsClient?.sendRequest(updateData).then(()=>{
+        
+    }).catch((e)=>{
+        ElMessage.error(`设备状态更新失败，错误码：${e}`)
+    })
+
 
 }
 </script>
