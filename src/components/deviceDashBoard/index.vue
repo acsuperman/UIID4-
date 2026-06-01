@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useUserStore } from "@/store/user";
 import { storeToRefs } from 'pinia'
-import { getFamilyDeviceList } from "@/api";
 import { watch, ref, nextTick, onMounted } from "vue";
 import DeviceCard from "@/components/deviceDashBoard/deviceCard.vue";
 import type { itemData } from "@/api";
 import type { WebSocketMessage } from "@/common/websocket";
 import DeviceControl from "@/components/deviceDashBoard/deviceControl.vue";
+import { cloneDeep } from "lodash";
 
 
 
@@ -39,19 +39,9 @@ onMounted(() => {
 
 watch(currentChooseInfo, async (newVal, oldVal) => {
     if (newVal.familyId && newVal.familyId !== oldVal.familyId) {
-        const res = await getFamilyDeviceList(newVal.familyId)
-        roomDeviceList.value = {}
-        res.thingList.forEach((thing) => {
-            const itemData = thing.itemData
-            const roomId = itemData.family.roomid || "-1"// -1是未分配
-            if (itemData.family.familyid !== newVal.familyId)
-                return;
-            if (!roomDeviceList.value[roomId]) {
-                roomDeviceList.value[roomId] = []
-            }
-            roomDeviceList.value[roomId].push(itemData)
-        })
-        roomList.value = [{ id: "-1", name: "未分配", index: -1 }, ...(userStore.familyInfo.familyList.find(family => family.id === newVal.familyId)?.roomList || [])]
+        const familyId = newVal.familyId
+        roomList.value = [{ id: "-1", name: "未分配", index: -1 }, ...(cloneDeep(userStore.familyInfo.familyList.find(family => family.id === newVal.familyId))?.roomList || [])]
+        roomList.value.forEach((item) => item.id = familyId + "+" + item.id)
     }
     await nextTick()
     if (newVal.roomName) {

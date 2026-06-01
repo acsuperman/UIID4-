@@ -97,10 +97,10 @@ export interface familyDeviceListResponse {
     total: number
 }
 
-export const getFamilyDeviceList = (familyId: string) => {
+export const getFamilyDeviceList = (familyid: string) => {
     return axios.get<any, familyDeviceListResponse>(`/v2/device/thing`, {
         params: {
-            familyId,
+            familyid,
             num: 0
         }
     });

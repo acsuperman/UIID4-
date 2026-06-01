@@ -3,9 +3,11 @@ import type { itemData } from "@/api";
 import { useUserStore } from "@/store/user";
 import { ElMention, ElMessage } from "element-plus";
 import { cloneDeep } from "lodash"
+import { ref } from "vue"
 const props = defineProps<{ device: itemData | null }>()
 
 const userStore = useUserStore()
+const loading = ref(false)
 const changeChannelStatus = (device: itemData, outlet: number) => {
     //roomDeviceList.value[device.family.roomid].find(device => device.deviceid === device.deviceid)?.params.switches.find(item => item.outlet === outlet)?.switch
     const cloneSwitches = cloneDeep(device.params.switches)
@@ -20,10 +22,11 @@ const changeChannelStatus = (device: itemData, outlet: number) => {
         userAgent: "app",
         sequence
     }
-    userStore.wsClient?.sendRequest(updateData).then(()=>{
-        
-    }).catch((e)=>{
+    loading.value = true
+    userStore.wsClient?.sendRequest(updateData).catch((e) => {
         ElMessage.error(`设备状态更新失败，错误码：${e}`)
+    }).finally(() => {
+        loading.value = false
     })
 
 
@@ -31,7 +34,7 @@ const changeChannelStatus = (device: itemData, outlet: number) => {
 </script>
 
 <template>
-    <div id="total-wrapper">
+    <div id="total-wrapper" v-loading="loading">
         <div v-for="channel in props.device?.params.switches" :key="channel.outlet" class="channel-wrapper"
             @click="() => changeChannelStatus(device!, channel.outlet)">
             <div class="single-channel-background">

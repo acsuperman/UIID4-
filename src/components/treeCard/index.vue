@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 import { useUserStore } from "@/store/user";
 import { getFamilyAndRoomInfo } from "@/api";
 type TreeNodeData = Record<string, any>
@@ -46,24 +46,26 @@ const nodeClick = (data: TreeNodeData) => {
 
 const treeData = ref<Tree[]>([])
 
-getFamilyAndRoomInfo().then((res) => {
-    treeData.value = res.familyList?.map(family => ({
-        id: family.id,
-        label: family.name,
-        children: family.roomList?.map(room => ({
-            id: room.id,
-            label: room.name,
-            familyId: family.id,
-            familyName: family.name
-        })) ?? []
-    }))
-    userStore.familyInfo = res
-    userStore.currentChooseInfo = {
-        familyId: treeData.value[0]?.id,
-        familyName: treeData.value[0]?.label,
-    }
-}).catch((err) => {
-    console.error(err);
+onMounted(() => {
+    getFamilyAndRoomInfo().then((res) => {
+        treeData.value = res.familyList?.map(family => ({
+            id: family.id,
+            label: family.name,
+            children: family.roomList?.map(room => ({
+                id: room.id,
+                label: room.name,
+                familyId: family.id,
+                familyName: family.name
+            })) ?? []
+        }))
+        userStore.familyInfo = res
+        userStore.currentChooseInfo = {
+            familyId: treeData.value[0]?.id,
+            familyName: treeData.value[0]?.label,
+        }
+    }).catch((err) => {
+        console.error(err);
+    })
 })
 
 </script>

@@ -27,7 +27,7 @@ export interface WebSocketMessage {
     action?: string,
     deviceid?: string,
     error: number,
-    sequence?: string,
+    sequence: string,
     params: { switches?: Array<{ outlet: number, switch: 'off' | 'on' }>, online?: boolean }
 }
 
@@ -54,7 +54,7 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     let heartbeatTimer: ReturnType<typeof setTimeout> | null = null
     let heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null
     const heartbeatTimeout = 5000
-    const wsControlRes: Array<{ reject: (reason?: any) => void, resolve: (value: string) => void, sequence: string, deviceid: string, switches: Array<{ outlet: number, switch: "on" | "off" }> }> = []
+    const wsControlRes: Map<string, { reject: (reason?: any) => void, resolve: (value: string) => void, deviceid: string, switches: Array<{ outlet: number, switch: "on" | "off" }> }> = new Map()
     const listeners: Array<(data: any) => void> = []
 
 
@@ -70,7 +70,6 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         ws = new WebSocket(url)
 
         ws.onopen = () => {
-            reConnectInterval = 0
             const handshakeMsg = {
                 action: 'userOnline',
                 version: 8,
@@ -87,38 +86,52 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         ws.onmessage = (event) => {
             console.log("WebSocket message received:", event)
             if (event.data === "pong") {
-                clearTimeout(heartbeatTimeoutTimer ? heartbeatTimeoutTimer : undefined)
+                clearHeartbeatTimeout()
                 return;
             }
             let msg = JSON.parse(event.data)
             if (msg.error === 0 && msg.config) {
                 config.value = msg.config
+
+                reConnectInterval = 0
+                connectingFlag = false; //握手成功才是真的建好webSocket了
+
                 startHeartbeat()
             }
+            if (msg.error !== 0 && msg.config) {
+                //握手失败，重新connect一下
+                connectingFlag = false
+                connect()
+
+            };
+            ;
+
             listeners.forEach(fn => fn(msg))
         }
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
+            connectingFlag = false
             stopHeartbeat()
-            connect()
+            clearHeartbeatTimeout()
+            if (event.code !== 4001)
+                connect()
         }
 
         ws.onerror = () => {
-            ws?.close()
+            console.log("这是ws.onerror")
         }
-        connectingFlag = false;
+
     }
 
     const startHeartbeat = () => {
         if (!config.value || config.value.hb !== 1) return
         const interval = (config.value.hbInterval || 90) * (0.8 + Math.random() * 0.2)
-        heartbeatTimer = setTimeout(() => {
+        heartbeatTimer = setInterval(() => {
             ws?.send("ping")
             heartbeatTimeoutTimer = setTimeout(() => {
                 stopHeartbeat()
                 connect()
             }, heartbeatTimeout);
-            startHeartbeat()
         }, interval * 1000)
     }
 
@@ -129,14 +142,22 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         }
     }
 
+    const clearHeartbeatTimeout = () => {
+        if (heartbeatTimeoutTimer) {
+            clearTimeout(heartbeatTimeoutTimer)
+            heartbeatTimeoutTimer = null
+        }
+    }
+
     const send = (data: WsSendData) => {
         ws?.send(JSON.stringify(data))
     }
 
-    const close = () => {
+    const close = (params: { manualClose: boolean } = { manualClose: false }) => {
         stopHeartbeat()
-        clearTimeout(heartbeatTimeoutTimer as number)
-        ws?.close()
+        clearHeartbeatTimeout()
+        const code = params.manualClose ? 4001 : 1005
+        ws?.close(code)
     }
 
 
@@ -145,28 +166,25 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     }
 
     const dealWsRes = (data: WebSocketMessage) => {
-        let hasWsControlRs = -1
         const userStore = useUserStore()
-        wsControlRes.forEach((item, index) => {
-            if (item.sequence === data.sequence) {
-                hasWsControlRs = index
-            }
-        })
-        if (hasWsControlRs !== -1) {
-            const targetRs = wsControlRes[hasWsControlRs]
+        if (wsControlRes.has(data.sequence)) {
+            const targetRs = wsControlRes.get(data.sequence)!
             if (data.error === 0) {
-                Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
-                    deviceArray.forEach((device) => {
+                Object.values(userStore.roomDeviceList).find((deviceArray) => {
+                    const result = deviceArray.find((device) => {
                         if (device.deviceid === targetRs.deviceid) {
                             device.params.switches = targetRs.switches!
+                            return true
                         }
                     })
+                    if (result)
+                        return true
                 })
                 targetRs.resolve("ok")
             }
             else
                 targetRs.reject(data.error)
-            wsControlRes.splice(hasWsControlRs, 1)
+            wsControlRes.delete(data.sequence)
             return;
         }
         if (data.error !== undefined && data.error !== 0)
@@ -174,23 +192,29 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
         const { action } = data
         if (action === "sysmsg") {  //上下线
             const { deviceid, params: { online } } = data
-            Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
-                deviceArray.forEach((device) => {
+            Object.values(userStore.roomDeviceList).find((deviceArray) => {
+                const result = deviceArray.find((device) => {
                     if (device.deviceid === deviceid) {
                         device.params.online = online!
+                        return true;
                     }
                 })
+                if (result)
+                    return true
             })
             return;
         }
         if (action !== "update") return  //别的客户端更新状态后，本客户端同步
         const { deviceid, params: { switches } } = data
-        Object.values(userStore.roomDeviceList).forEach((deviceArray) => {
-            deviceArray.forEach((device) => {
+        Object.values(userStore.roomDeviceList).find((deviceArray) => {
+            const result = deviceArray.find((device) => {
                 if (device.deviceid === deviceid) {
                     device.params.switches = switches!
+                    return true;
                 }
             })
+            if (result)
+                return true;
         })
 
     }
@@ -198,7 +222,7 @@ export function useWebSocket(domain: string, port: number, handshake: HandshakeP
     const sendRequest = (data: WsSendData) => {
         send(data)
         return new Promise((resolve, reject) => {
-            wsControlRes.push({ reject, resolve, sequence: data.sequence, deviceid: data.deviceid, switches: data.params.switches })
+            wsControlRes.set(data.sequence, { reject, resolve, deviceid: data.deviceid, switches: data.params.switches })
         })
 
     }
