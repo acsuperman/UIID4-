@@ -11,7 +11,7 @@ import DeviceControl from "@/components/deviceDashBoard/deviceControl.vue";
 
 
 const userStore = useUserStore()
-const { currentChooseInfo, wsClient,roomDeviceList } = storeToRefs(userStore)
+const { currentChooseInfo, wsClient, roomDeviceList } = storeToRefs(userStore)
 const roomList = ref<Array<{
     id: string;
     name: string;
@@ -44,6 +44,8 @@ watch(currentChooseInfo, async (newVal, oldVal) => {
         res.thingList.forEach((thing) => {
             const itemData = thing.itemData
             const roomId = itemData.family.roomid || "-1"// -1是未分配
+            if (itemData.family.familyid !== newVal.familyId)
+                return;
             if (!roomDeviceList.value[roomId]) {
                 roomDeviceList.value[roomId] = []
             }
