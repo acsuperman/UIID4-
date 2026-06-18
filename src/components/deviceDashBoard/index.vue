@@ -23,7 +23,7 @@ const dialogVisible = ref(false)
 
 
 const onDeviceCardClick = (device: itemData) => {
-    if (device.extra.uiid !== 4 || device.params.online === false)
+    if (device.extra.uiid !== 4 || device.online === false)
         return;
     nowChooseDevice.value = device
     dialogVisible.value = true
